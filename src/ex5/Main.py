@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QLabel,
     QPushButton,
+    QComboBox,
     QSlider,
     QDoubleSpinBox,
     QFrame,
@@ -30,6 +31,7 @@ class HeatTransfer(QWidget):
         self.body1_temp_history = []
         self.body2_temp_history = []
         self.arrow_frame = 0
+        self.speed = 1.0
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.timer_method)
@@ -40,18 +42,29 @@ class HeatTransfer(QWidget):
     def setupUI(self):
         self.setObjectName("HeatTransferWindow")
         self.setWindowTitle("Heat Transfer")
-        self.setGeometry(120, 120, 720, 490)
+        self.setGeometry(120, 120, 720, 505)
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 16, 20, 20)
         main_layout.setSpacing(14)
 
-        # ----- Compact top header row: title + status pill + elapsed clock -----
+        # ----- Compact top header row: title + speed + status pill + elapsed clock -----
         header_layout = QHBoxLayout()
-        header_layout.setSpacing(10)
+        header_layout.setSpacing(8)
 
         app_title = QLabel("Heat Transfer Simulator")
         app_title.setObjectName("app_title")
+
+        speed_label = QLabel("Speed")
+        speed_label.setObjectName("speed_label")
+
+        self.speed_combo = QComboBox()
+        self.speed_combo.setObjectName("speed_combo")
+        self.speed_combo.addItems(["0.5x", "1x", "2x", "5x", "10x"])
+        self.speed_combo.setCurrentText("1x")
+        self.speed_combo.setFixedWidth(68)
+        self.speed_combo.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.speed_combo.currentTextChanged.connect(self.speed_changed)
 
         self.status_pill = QLabel("● Idle")
         self.status_pill.setObjectName("status_pill_idle")
@@ -61,6 +74,9 @@ class HeatTransfer(QWidget):
 
         header_layout.addWidget(app_title)
         header_layout.addStretch()
+        header_layout.addWidget(speed_label)
+        header_layout.addWidget(self.speed_combo)
+        header_layout.addSpacing(4)
         header_layout.addWidget(self.status_pill)
         header_layout.addWidget(self.clock_label)
         main_layout.addLayout(header_layout)
@@ -150,6 +166,7 @@ class HeatTransfer(QWidget):
         left_grid = QGridLayout()
         left_grid.setHorizontalSpacing(10)
         left_grid.setVerticalSpacing(10)
+        left_grid.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         left_title = QLabel("Body 1")
         left_title.setObjectName("section_title")
@@ -187,7 +204,7 @@ class HeatTransfer(QWidget):
 
         # Center action buttons
         center_buttons_layout = QVBoxLayout()
-        center_buttons_layout.setSpacing(10)
+        center_buttons_layout.setSpacing(8)
         center_buttons_layout.addStretch()
 
         self.start_stop_button = QPushButton("Start")
@@ -196,6 +213,12 @@ class HeatTransfer(QWidget):
         self.start_stop_button.setFixedWidth(130)
         self.start_stop_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.start_stop_button.clicked.connect(self.start_stop_button_method)
+
+        self.reset_button = QPushButton("Reset")
+        self.reset_button.setObjectName("reset_button")
+        self.reset_button.setFixedWidth(130)
+        self.reset_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.reset_button.clicked.connect(self.reset_simulation)
 
         self.graphs_button = QPushButton("Graphs")
         self.graphs_button.setObjectName("graphs_button")
@@ -209,6 +232,7 @@ class HeatTransfer(QWidget):
         self.about_button.clicked.connect(self.open_about_window)
 
         center_buttons_layout.addWidget(self.start_stop_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        center_buttons_layout.addWidget(self.reset_button, alignment=Qt.AlignmentFlag.AlignCenter)
         center_buttons_layout.addWidget(self.graphs_button, alignment=Qt.AlignmentFlag.AlignCenter)
         center_buttons_layout.addWidget(self.about_button, alignment=Qt.AlignmentFlag.AlignCenter)
         center_buttons_layout.addStretch()
@@ -217,6 +241,7 @@ class HeatTransfer(QWidget):
         right_grid = QGridLayout()
         right_grid.setHorizontalSpacing(10)
         right_grid.setVerticalSpacing(10)
+        right_grid.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         right_title = QLabel("Body 2")
         right_title.setObjectName("section_title")
@@ -316,13 +341,14 @@ class HeatTransfer(QWidget):
         self.update_thermal_bridge(self.left_temp_display.value(), curr_temp)
 
     def timer_method(self):
+        step_dt = self.dt * self.speed
         conductivity = self.conductivity_spinbox.value()
         t1 = self.body1.temperature
         t2 = self.body2.temperature
         i1 = conductivity * (t2 - t1)
         i2 = conductivity * (t1 - t2)
-        dQ1 = i1 * self.dt
-        dQ2 = i2 * self.dt
+        dQ1 = i1 * step_dt
+        dQ2 = i2 * step_dt
         new_t1 = self.body1.add_heat(dQ1)
         new_t2 = self.body2.add_heat(dQ2)
 
@@ -343,11 +369,12 @@ class HeatTransfer(QWidget):
         self.right_temp_slider.setValue(round(new_t2))
         self.right_temp_slider.blockSignals(False)
 
-        self.elapsed_time += self.dt
+        self.elapsed_time += step_dt
         self.clock_label.setText(f"{self.elapsed_time:.2f} s")
         self.time_history.append(self.elapsed_time)
         self.body1_temp_history.append(new_t1)
         self.body2_temp_history.append(new_t2)
+
         if abs(new_t1 - new_t2) < 0.05:
             self.start_stop_button.setChecked(False)
             self.start_stop_button_method()
@@ -386,6 +413,35 @@ class HeatTransfer(QWidget):
             self.status_pill.setObjectName("status_pill_idle")
             self.status_pill.style().unpolish(self.status_pill)
             self.status_pill.style().polish(self.status_pill)
+
+    def speed_changed(self):
+       self.speed = float(self.speed_combo.currentText().replace("x", ""))
+
+
+    def reset_simulation(self):
+        if self.start_stop_button.isChecked():
+            self.start_stop_button.setChecked(False)
+            self.start_stop_button_method()
+        self.left_temp_slider.setValue(200)
+        self.right_temp_slider.setValue(0)
+        self.left_temp_changed()
+        self.right_temp_changed()
+        self.speed_combo.setCurrentText("1x")
+        self.left_mass_spinbox.setValue(10.00)
+        self.right_mass_spinbox.setValue(10.00)
+        self.left_heat_capacity_spinbox.setValue(0.40)
+        self.right_heat_capacity_spinbox.setValue(0.40)
+        self.conductivity_spinbox.setValue(1.0)
+        self.elapsed_time = 0.0
+        self.arrow_frame = 0
+        self.time_history=[]
+        self.body1_temp_history=[]
+        self.body2_temp_history = []
+        self.graph_window.clear_graph()
+        self.clock_label.setText("0.00 s")
+        self.set_status_pill("● Idle", "status_pill_idle")
+        self.update_thermal_bridge(200.0, 0.0)
+            
 
     def open_about_window(self):
         self.about_window.show()
