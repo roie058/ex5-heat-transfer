@@ -59,6 +59,12 @@ QDoubleSpinBox[readOnly="true"] {
     border: 1px solid #e2e8f0;
 }
 
+QDoubleSpinBox[readOnly="true"]::up-button,
+QDoubleSpinBox[readOnly="true"]::down-button {
+    width: 0px;
+    border: none;
+}
+
 QPushButton {
     background-color: #ffffff;
     color: #1e293b;

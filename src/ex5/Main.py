@@ -11,9 +11,11 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QGridLayout,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import (Qt , QTimer)
+
 from About import AboutWindow
 from GraphWindow import GraphWindow
+from Body import Body
 
 
 class HeatTransfer(QWidget):
@@ -22,7 +24,13 @@ class HeatTransfer(QWidget):
         super().__init__()
         self.about_window = AboutWindow()
         self.graph_window = GraphWindow(self)
-        # Simulation variables and QTimer will be added in Stage 3
+
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.timer_method)
+        self.dt = 0.05
+
+
         self.setupUI()
 
     def setupUI(self):
@@ -46,6 +54,7 @@ class HeatTransfer(QWidget):
         self.left_temp_slider.setRange(0, 200)
         self.left_temp_slider.setValue(200)
         self.left_temp_slider.setFixedHeight(170)
+        self.left_temp_slider.valueChanged.connect(self.left_temp_changed)
 
         # Left body visual block
         self.left_body_label = QLabel()
@@ -94,6 +103,10 @@ class HeatTransfer(QWidget):
         self.right_temp_slider.setValue(0)
         self.right_temp_slider.setFixedHeight(170)
 
+        self.right_temp_slider.valueChanged.connect(self.right_temp_changed)
+        
+
+        
         stage_layout.addWidget(self.left_temp_slider)
         stage_layout.addWidget(self.left_body_label)
         stage_layout.addLayout(bridge_layout, 1)
@@ -123,7 +136,6 @@ class HeatTransfer(QWidget):
         self.left_temp_display.setValue(200.0)
         self.left_temp_display.setSuffix(" °C")
         self.left_temp_display.setReadOnly(True)
-        self.left_temp_display.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
 
         self.left_mass_spinbox = QDoubleSpinBox()
         self.left_mass_spinbox.setRange(0.01, 10000.0)
@@ -155,6 +167,7 @@ class HeatTransfer(QWidget):
         self.start_stop_button.setObjectName("start_stop_button")
         self.start_stop_button.setCheckable(True)
         self.start_stop_button.setFixedWidth(130)
+        self.start_stop_button.clicked.connect(self.start_stop_button_method)
 
         self.graphs_button = QPushButton("Graphs")
         self.graphs_button.setObjectName("graphs_button")
@@ -185,7 +198,6 @@ class HeatTransfer(QWidget):
         self.right_temp_display.setValue(0.0)
         self.right_temp_display.setSuffix(" °C")
         self.right_temp_display.setReadOnly(True)
-        self.right_temp_display.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
 
         self.right_mass_spinbox = QDoubleSpinBox()
         self.right_mass_spinbox.setRange(0.01, 10000.0)
@@ -216,6 +228,63 @@ class HeatTransfer(QWidget):
         main_layout.addWidget(stage_card)
         main_layout.addWidget(controls_card)
         self.setLayout(main_layout)
+
+    def update_body_color(self,body_label,temp):
+        red = int((temp/200)*255)
+        body_label.setStyleSheet(f"background-color: rgb({red}, 0, 0); border: 2px solid #94a3b8; border-radius: 10px;")
+
+    def left_temp_changed(self):
+        curr_temp=self.left_temp_slider.value()
+        self.left_temp_display.setValue(float(curr_temp))
+        self.update_body_color(self.left_body_label,curr_temp)
+
+    def right_temp_changed(self):
+        curr_temp=self.right_temp_slider.value()
+        self.right_temp_display.setValue(float(curr_temp))
+        self.update_body_color(self.right_body_label,curr_temp)
+
+    def timer_method(self):
+        conductivity = self.conductivity_spinbox.value()
+        t1 = self.body1.temperature
+        t2 = self.body2.temperature
+        i1 = conductivity*(t2-t1)
+        i2 = conductivity*(t1-t2)
+        dQ1 = i1*self.dt
+        dQ2 = i2*self.dt
+        new_t1 = self.body1.add_heat(dQ1)
+        new_t2 = self.body2.add_heat(dQ2)
+        
+
+        self.left_temp_display.setValue(new_t1)
+        self.right_temp_display.setValue(new_t2)
+        self.update_body_color(self.left_body_label,new_t1)
+        self.update_body_color(self.right_body_label,new_t2)
+
+        self.left_temp_slider.blockSignals(True)
+        self.left_temp_slider.setValue(round(new_t1))
+        self.left_temp_slider.blockSignals(False)
+
+        self.right_temp_slider.blockSignals(True)
+        self.right_temp_slider.setValue(round(new_t2))
+        self.right_temp_slider.blockSignals(False)
+
+    def start_stop_button_method(self):
+        if self.start_stop_button.isChecked():
+            left_mass = self.left_mass_spinbox.value()
+            left_heat_capacity = self.left_heat_capacity_spinbox.value()
+            left_temp = self.left_temp_display.value()
+            right_mass = self.right_mass_spinbox.value()
+            right_heat_capacity = self.right_heat_capacity_spinbox.value()
+            right_temp = self.right_temp_display.value()
+            self.body1 = Body(left_mass, left_heat_capacity, left_temp)
+            self.body2 = Body(right_mass, right_heat_capacity, right_temp)
+
+            self.start_stop_button.setText("Stop")
+            self.timer.start(int(self.dt*1000))
+        else:
+            self.timer.stop()
+            self.start_stop_button.setText("Start")
+
 
     def open_about_window(self):
         self.about_window.show()
