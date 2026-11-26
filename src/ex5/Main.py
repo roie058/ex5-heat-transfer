@@ -262,6 +262,12 @@ class HeatTransfer(QWidget):
         self.setLayout(main_layout)
         self.update_thermal_bridge(200.0, 0.0)
 
+    def set_status_pill(self, text, style_name):
+        self.status_pill.setText(text)
+        self.status_pill.setObjectName(style_name)
+        self.status_pill.style().unpolish(self.status_pill)
+        self.status_pill.style().polish(self.status_pill)
+
     def update_body_visual(self, body_label, name, temp):
         red = max(0, min(255, int((temp / 200) * 255)))
         body_label.setStyleSheet(
@@ -327,6 +333,8 @@ class HeatTransfer(QWidget):
         self.update_body_visual(self.right_body_label, "Body 2", new_t2)
         self.update_thermal_bridge(new_t1, new_t2)
 
+
+
         self.left_temp_slider.blockSignals(True)
         self.left_temp_slider.setValue(round(new_t1))
         self.left_temp_slider.blockSignals(False)
@@ -340,6 +348,12 @@ class HeatTransfer(QWidget):
         self.time_history.append(self.elapsed_time)
         self.body1_temp_history.append(new_t1)
         self.body2_temp_history.append(new_t2)
+        if abs(new_t1 - new_t2) < 0.05:
+            self.start_stop_button.setChecked(False)
+            self.start_stop_button_method()
+            self.set_status_pill(f"● Equilibrium ({new_t1:.1f} °C)", "status_pill_equilibrium")
+            
+
 
     def start_stop_button_method(self):
         if self.start_stop_button.isChecked():

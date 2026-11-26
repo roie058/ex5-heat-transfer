@@ -1,3 +1,4 @@
 Bonus Features Implemented:
-1. Polished the Main and Graph windows with a unified light-slate QSS theme (matching the About window), live elapsed-time clock, status indicator, and live temperature overlays inside both bodies.
-2. Added a live thermal gradient bridge between the bodies with animated heat-flow direction arrows and a live Wattage flux readout.
+1.live time clock, status indicator, and live temperature inside both bodies.
+2.animated heat-flow direction arrows and a live Wattage flux readout.
+3. Added automatic simulation stop when the two bodies reach thermal equilibrium.
