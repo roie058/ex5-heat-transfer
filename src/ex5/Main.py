@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from About import AboutWindow
+from GraphWindow import GraphWindow
 
 
 class HeatTransfer(QWidget):
@@ -20,7 +21,7 @@ class HeatTransfer(QWidget):
     def __init__(self):
         super().__init__()
         self.about_window = AboutWindow()
-        # Graph window will be added in the next step of Stage 2
+        self.graph_window = GraphWindow(self)
         # Simulation variables and QTimer will be added in Stage 3
         self.setupUI()
 
@@ -158,6 +159,7 @@ class HeatTransfer(QWidget):
         self.graphs_button = QPushButton("Graphs")
         self.graphs_button.setObjectName("graphs_button")
         self.graphs_button.setFixedWidth(130)
+        self.graphs_button.clicked.connect(self.open_graph_window)
 
         self.about_button = QPushButton("About")
         self.about_button.setFixedWidth(130)
@@ -218,8 +220,12 @@ class HeatTransfer(QWidget):
     def open_about_window(self):
         self.about_window.show()
 
+    def open_graph_window(self):
+        self.graph_window.show()
+
     def closeEvent(self, event):
         self.about_window.close()
+        self.graph_window.close()
 
 
 if __name__ == "__main__":

@@ -145,3 +145,17 @@ QComboBox {
 QComboBox:hover {
     border-color: #94a3b8;
 }
+
+QComboBox::drop-down {
+    border: none;
+    width: 24px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #ffffff;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    selection-background-color: #e0f2fe;
+    selection-color: #0369a1;
+    outline: none;
+}
