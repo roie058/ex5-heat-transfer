@@ -1,3 +1,4 @@
+
 import os
 from PySide6.QtWidgets import (
     QApplication,
@@ -56,10 +57,13 @@ class GraphWindow(QWidget):
 
         self.draw_button = QPushButton("Draw")
         self.draw_button.setObjectName("graphs_button")
+        self.draw_button.clicked.connect(self.draw_graph)
 
         self.clear_button = QPushButton("Clear")
+        self.clear_button.clicked.connect(self.clear_graph)
 
         self.export_csv_button = QPushButton("Export to CSV")
+        self.export_csv_button.clicked.connect(self.export_to_csv)
 
         controls_layout.addWidget(self.body_selector)
         controls_layout.addWidget(self.draw_button)
@@ -72,9 +76,35 @@ class GraphWindow(QWidget):
         main_layout.addWidget(controls_card)
         self.setLayout(main_layout)
 
+    def draw_graph(self):
+        if self.main_window is None or len(self.main_window.time_history) == 0:
+            return
+        selected = self.body_selector.currentText()
+        if selected == 'Body 1':
+            self.ax.plot(self.main_window.time_history, self.main_window.body1_temp_history,color='#dc2626', label="Body 1", linewidth=2)
+
+        else:
+            self.ax.plot(self.main_window.time_history, self.main_window.body2_temp_history,color='#2563eb', label="Body 2", linewidth=2)
+        self.ax.legend(fontsize=10)
+        self.figure.tight_layout()
+        self.canvas.draw()
+        
+    def clear_graph(self):
+        self.ax.clear()
+        self.configure_axes()
+        self.canvas.draw()
+    
+    def export_to_csv(self):
+        if self.main_window is None or len(self.main_window.time_history) == 0:
+            return
+        with open("heat_transfer_data.csv", "w") as f:
+            f.write("Time (s),Body 1 Temperature (C),Body 2 Temperature (C)\n")
+            for i in range(len(self.main_window.time_history)):
+                f.write(f"{self.main_window.time_history[i]},{self.main_window.body1_temp_history[i]},{self.main_window.body2_temp_history[i]}\n")
+        os.startfile("heat_transfer_data.csv")
     def configure_axes(self):
-        self.ax.set_xlabel("Time (s)")
-        self.ax.set_ylabel("Temperature (°C)")
+        self.ax.set_xlabel("Time (s)", fontsize=12)
+        self.ax.set_ylabel("Temperature (°C)", fontsize=12)
         self.ax.spines["top"].set_visible(False)
         self.ax.spines["right"].set_visible(False)
         self.ax.grid(True, linestyle="--", alpha=0.35)

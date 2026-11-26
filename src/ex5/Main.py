@@ -25,6 +25,11 @@ class HeatTransfer(QWidget):
         self.about_window = AboutWindow()
         self.graph_window = GraphWindow(self)
 
+        self.elapsed_time = 0.0
+        self.time_history = []
+        self.body1_temp_history = []
+        self.body2_temp_history = []
+
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.timer_method)
@@ -268,6 +273,11 @@ class HeatTransfer(QWidget):
         self.right_temp_slider.setValue(round(new_t2))
         self.right_temp_slider.blockSignals(False)
 
+        self.elapsed_time += self.dt
+        self.time_history.append(self.elapsed_time)
+        self.body1_temp_history.append(new_t1)
+        self.body2_temp_history.append(new_t2)
+
     def start_stop_button_method(self):
         if self.start_stop_button.isChecked():
             left_mass = self.left_mass_spinbox.value()
@@ -278,6 +288,11 @@ class HeatTransfer(QWidget):
             right_temp = self.right_temp_display.value()
             self.body1 = Body(left_mass, left_heat_capacity, left_temp)
             self.body2 = Body(right_mass, right_heat_capacity, right_temp)
+
+            self.elapsed_time = 0.0
+            self.time_history = [0.0]
+            self.body1_temp_history = [left_temp]
+            self.body2_temp_history = [right_temp]
 
             self.start_stop_button.setText("Stop")
             self.timer.start(int(self.dt*1000))
