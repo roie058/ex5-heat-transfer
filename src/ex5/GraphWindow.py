@@ -1,4 +1,3 @@
-
 import os
 from PySide6.QtWidgets import (
     QApplication,
@@ -9,6 +8,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QVBoxLayout,
 )
+from PySide6.QtCore import Qt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
@@ -23,7 +23,7 @@ class GraphWindow(QWidget):
     def setupUI(self):
         self.setObjectName("GraphWindow")
         self.setWindowTitle("Graph Window")
-        self.setGeometry(820, 120, 680, 440)
+        self.setGeometry(860, 120, 680, 440)
 
         main_layout = QHBoxLayout()
         main_layout.setContentsMargins(16, 16, 16, 16)
@@ -57,12 +57,15 @@ class GraphWindow(QWidget):
 
         self.draw_button = QPushButton("Draw")
         self.draw_button.setObjectName("graphs_button")
+        self.draw_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.draw_button.clicked.connect(self.draw_graph)
 
         self.clear_button = QPushButton("Clear")
+        self.clear_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.clear_button.clicked.connect(self.clear_graph)
 
         self.export_csv_button = QPushButton("Export to CSV")
+        self.export_csv_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.export_csv_button.clicked.connect(self.export_to_csv)
 
         controls_layout.addWidget(self.body_selector)
@@ -80,39 +83,45 @@ class GraphWindow(QWidget):
         if self.main_window is None or len(self.main_window.time_history) == 0:
             return
         selected = self.body_selector.currentText()
-        if selected == 'Body 1':
-            self.ax.plot(self.main_window.time_history, self.main_window.body1_temp_history,color='#dc2626', label="Body 1", linewidth=2)
-
+        if selected == "Body 1":
+            self.ax.plot(self.main_window.time_history, self.main_window.body1_temp_history, color="#dc2626", label="Body 1", linewidth=2.2)
         else:
-            self.ax.plot(self.main_window.time_history, self.main_window.body2_temp_history,color='#2563eb', label="Body 2", linewidth=2)
-        self.ax.legend(fontsize=10)
+            self.ax.plot(self.main_window.time_history, self.main_window.body2_temp_history, color="#0284c7", label="Body 2", linewidth=2.2)
+        self.ax.legend(frameon=True, facecolor="#ffffff", edgecolor="#e2e8f0", fontsize=10)
         self.figure.tight_layout()
         self.canvas.draw()
-        
+
     def clear_graph(self):
         self.ax.clear()
         self.configure_axes()
         self.canvas.draw()
-    
+
     def export_to_csv(self):
         if self.main_window is None or len(self.main_window.time_history) == 0:
             return
         with open("heat_transfer_data.csv", "w") as f:
             f.write("Time (s),Body 1 Temperature (C),Body 2 Temperature (C)\n")
             for i in range(len(self.main_window.time_history)):
-                f.write(f"{self.main_window.time_history[i]},{self.main_window.body1_temp_history[i]},{self.main_window.body2_temp_history[i]}\n")
+                f.write(f"{self.main_window.time_history[i]:.2f},{self.main_window.body1_temp_history[i]:.2f},{self.main_window.body2_temp_history[i]:.2f}\n")
         os.startfile("heat_transfer_data.csv")
+
     def configure_axes(self):
-        self.ax.set_xlabel("Time (s)", fontsize=12)
-        self.ax.set_ylabel("Temperature (°C)", fontsize=12)
+        self.ax.set_facecolor("#f8fafc")
+        self.ax.set_xlabel("Time (s)", fontsize=11, fontweight="bold", color="#334155")
+        self.ax.set_ylabel("Temperature (°C)", fontsize=11, fontweight="bold", color="#334155")
+        self.ax.tick_params(colors="#64748b", labelsize=10)
         self.ax.spines["top"].set_visible(False)
         self.ax.spines["right"].set_visible(False)
-        self.ax.grid(True, linestyle="--", alpha=0.35)
+        self.ax.spines["left"].set_color("#cbd5e1")
+        self.ax.spines["bottom"].set_color("#cbd5e1")
+        self.ax.grid(True, linestyle="--", alpha=0.45, color="#cbd5e1")
         self.figure.tight_layout()
 
 
 if __name__ == "__main__":
     app = QApplication()
+    app.styleHints().setColorScheme(Qt.ColorScheme.Light)
+    app.setStyle("Fusion")
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     style_path = os.path.join(current_dir, "style.qss")
