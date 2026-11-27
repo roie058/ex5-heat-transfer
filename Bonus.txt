@@ -4,3 +4,4 @@ Bonus Features Implemented:
 3. Added automatic simulation stop when the two bodies reach thermal equilibrium.
 4. Added a simulation speed selector (0.5x–100x) in the top bar and a Reset button that restores all defaults and clears the graph.
 5. Added material preset dropdowns per body with accurate SI specific heat capacities (Copper, Aluminum, Iron, Gold, Glass, Water) that lock heat capacity while a preset is active.
+6. Added external heater/cooler power controls in Watts (-500 W to +500 W) for each body to inject or remove heat continuously during the simulation.

@@ -51,7 +51,7 @@ class HeatTransfer(QWidget):
     def setupUI(self):
         self.setObjectName("HeatTransferWindow")
         self.setWindowTitle("Heat Transfer")
-        self.setGeometry(120, 120, 720, 540)
+        self.setGeometry(120, 120, 720, 575)
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 16, 20, 20)
@@ -182,7 +182,7 @@ class HeatTransfer(QWidget):
         left_grid.addWidget(left_title, 0, 0, 1, 2)
 
         self.left_temp_display = QDoubleSpinBox()
-        self.left_temp_display.setRange(0.0, 200.0)
+        self.left_temp_display.setRange(0.0, 1000.0)
         self.left_temp_display.setDecimals(1)
         self.left_temp_display.setValue(200.0)
         self.left_temp_display.setSuffix(" °C")
@@ -210,6 +210,14 @@ class HeatTransfer(QWidget):
         self.left_heat_capacity_spinbox.setSuffix(" J/kg°C")
         self.left_heat_capacity_spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.PlusMinus)
 
+        self.left_heater_spinbox = QDoubleSpinBox()
+        self.left_heater_spinbox.setRange(-500.0, 500.0)
+        self.left_heater_spinbox.setDecimals(1)
+        self.left_heater_spinbox.setSingleStep(10.0)
+        self.left_heater_spinbox.setValue(0.0)
+        self.left_heater_spinbox.setSuffix(" W")
+        self.left_heater_spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.PlusMinus)
+
         left_grid.addWidget(QLabel("Temp."), 1, 0)
         left_grid.addWidget(self.left_temp_display, 1, 1)
         left_grid.addWidget(QLabel("Mass"), 2, 0)
@@ -218,6 +226,8 @@ class HeatTransfer(QWidget):
         left_grid.addWidget(self.left_material_combo, 3, 1)
         left_grid.addWidget(QLabel("H. Cap."), 4, 0)
         left_grid.addWidget(self.left_heat_capacity_spinbox, 4, 1)
+        left_grid.addWidget(QLabel("Heater"), 5, 0)
+        left_grid.addWidget(self.left_heater_spinbox, 5, 1)
 
         # Center action buttons
         center_buttons_layout = QVBoxLayout()
@@ -265,7 +275,7 @@ class HeatTransfer(QWidget):
         right_grid.addWidget(right_title, 0, 0, 1, 2)
 
         self.right_temp_display = QDoubleSpinBox()
-        self.right_temp_display.setRange(0.0, 200.0)
+        self.right_temp_display.setRange(0.0, 1000.0)
         self.right_temp_display.setDecimals(1)
         self.right_temp_display.setValue(0.0)
         self.right_temp_display.setSuffix(" °C")
@@ -293,6 +303,14 @@ class HeatTransfer(QWidget):
         self.right_heat_capacity_spinbox.setSuffix(" J/kg°C")
         self.right_heat_capacity_spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.PlusMinus)
 
+        self.right_heater_spinbox = QDoubleSpinBox()
+        self.right_heater_spinbox.setRange(-500.0, 500.0)
+        self.right_heater_spinbox.setDecimals(1)
+        self.right_heater_spinbox.setSingleStep(10.0)
+        self.right_heater_spinbox.setValue(0.0)
+        self.right_heater_spinbox.setSuffix(" W")
+        self.right_heater_spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.PlusMinus)
+
         right_grid.addWidget(self.right_temp_display, 1, 0)
         right_grid.addWidget(QLabel("Temp."), 1, 1)
         right_grid.addWidget(self.right_mass_spinbox, 2, 0)
@@ -301,6 +319,8 @@ class HeatTransfer(QWidget):
         right_grid.addWidget(QLabel("Material"), 3, 1)
         right_grid.addWidget(self.right_heat_capacity_spinbox, 4, 0)
         right_grid.addWidget(QLabel("H. Cap."), 4, 1)
+        right_grid.addWidget(self.right_heater_spinbox, 5, 0)
+        right_grid.addWidget(QLabel("Heater"), 5, 1)
 
         controls_layout.addLayout(left_grid, 1)
         controls_layout.addLayout(center_buttons_layout)
@@ -375,12 +395,23 @@ class HeatTransfer(QWidget):
         conductivity = self.conductivity_spinbox.value()
         t1 = self.body1.temperature
         t2 = self.body2.temperature
+        heater1 = self.left_heater_spinbox.value()
+        heater2 = self.right_heater_spinbox.value()
+
         i1 = conductivity * (t2 - t1)
         i2 = conductivity * (t1 - t2)
-        dQ1 = i1 * step_dt
-        dQ2 = i2 * step_dt
+        dQ1 = (i1 + heater1) * step_dt
+        dQ2 = (i2 + heater2) * step_dt
         new_t1 = self.body1.add_heat(dQ1)
         new_t2 = self.body2.add_heat(dQ2)
+        if new_t1 < 0.0:
+            self.body1.temperature = 0.0
+            new_t1 = 0.0
+        if new_t2 < 0.0:
+            self.body2.temperature = 0.0
+            new_t2 = 0.0
+
+        
 
         self.arrow_frame += 1
         self.left_temp_display.setValue(new_t1)
@@ -405,7 +436,7 @@ class HeatTransfer(QWidget):
         self.body1_temp_history.append(new_t1)
         self.body2_temp_history.append(new_t2)
 
-        if abs(new_t1 - new_t2) < 0.05:
+        if heater1 == 0 and heater2 == 0 and abs(new_t1 - new_t2) < 0.05:
             self.start_stop_button.setChecked(False)
             self.start_stop_button_method()
             self.set_status_pill(f"● Equilibrium ({new_t1:.1f} °C)", "status_pill_equilibrium")
@@ -463,6 +494,8 @@ class HeatTransfer(QWidget):
         self.right_material_combo.setCurrentText("Custom")
         self.left_heat_capacity_spinbox.setValue(0.40)
         self.right_heat_capacity_spinbox.setValue(0.40)
+        self.left_heater_spinbox.setValue(0.0)
+        self.right_heater_spinbox.setValue(0.0)
         self.conductivity_spinbox.setValue(1.0)
         self.elapsed_time = 0.0
         self.arrow_frame = 0
