@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QLabel,
     QPushButton,
+    QCheckBox,
     QComboBox,
     QSlider,
     QDoubleSpinBox,
@@ -51,7 +52,7 @@ class HeatTransfer(QWidget):
     def setupUI(self):
         self.setObjectName("HeatTransferWindow")
         self.setWindowTitle("Heat Transfer")
-        self.setGeometry(120, 120, 720, 575)
+        self.setGeometry(120, 120, 720, 620)
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 16, 20, 20)
@@ -167,8 +168,11 @@ class HeatTransfer(QWidget):
         # ----- Bottom controls: Body 1 parameters | Action buttons | Body 2 parameters -----
         controls_card = QFrame()
         controls_card.setObjectName("controls_card")
+        controls_card_layout = QVBoxLayout()
+        controls_card_layout.setContentsMargins(20, 18, 20, 14)
+        controls_card_layout.setSpacing(12)
+
         controls_layout = QHBoxLayout()
-        controls_layout.setContentsMargins(20, 18, 20, 18)
         controls_layout.setSpacing(20)
 
         # Left body controls
@@ -325,12 +329,59 @@ class HeatTransfer(QWidget):
         controls_layout.addLayout(left_grid, 1)
         controls_layout.addLayout(center_buttons_layout)
         controls_layout.addLayout(right_grid, 1)
-        controls_card.setLayout(controls_layout)
+
+        controls_divider = QFrame()
+        controls_divider.setObjectName("controls_divider")
+        controls_divider.setFixedHeight(1)
+
+        ambient_layout = QHBoxLayout()
+        ambient_layout.setSpacing(10)
+
+        self.ambient_checkbox = QCheckBox("Ambient Cooling")
+        self.ambient_checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.ambient_checkbox.toggled.connect(self.ambient_toggled)
+
+        self.ambient_temp_spinbox = QDoubleSpinBox()
+        self.ambient_temp_spinbox.setRange(0.0, 200.0)
+        self.ambient_temp_spinbox.setDecimals(1)
+        self.ambient_temp_spinbox.setSingleStep(1.0)
+        self.ambient_temp_spinbox.setValue(25.0)
+        self.ambient_temp_spinbox.setSuffix(" °C")
+        self.ambient_temp_spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.PlusMinus)
+        self.ambient_temp_spinbox.setFixedWidth(112)
+        self.ambient_temp_spinbox.setEnabled(False)
+
+        self.ambient_loss_spinbox = QDoubleSpinBox()
+        self.ambient_loss_spinbox.setRange(0.0, 50.0)
+        self.ambient_loss_spinbox.setDecimals(2)
+        self.ambient_loss_spinbox.setSingleStep(0.1)
+        self.ambient_loss_spinbox.setValue(0.50)
+        self.ambient_loss_spinbox.setSuffix(" J/s°C")
+        self.ambient_loss_spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.PlusMinus)
+        self.ambient_loss_spinbox.setFixedWidth(134)
+        self.ambient_loss_spinbox.setEnabled(False)
+
+        ambient_layout.addWidget(self.ambient_checkbox)
+        ambient_layout.addStretch()
+        ambient_layout.addWidget(QLabel("Room Temp"))
+        ambient_layout.addWidget(self.ambient_temp_spinbox)
+        ambient_layout.addSpacing(8)
+        ambient_layout.addWidget(QLabel("Loss (h)"))
+        ambient_layout.addWidget(self.ambient_loss_spinbox)
+
+        controls_card_layout.addLayout(controls_layout)
+        controls_card_layout.addWidget(controls_divider)
+        controls_card_layout.addLayout(ambient_layout)
+        controls_card.setLayout(controls_card_layout)
 
         main_layout.addWidget(stage_card)
         main_layout.addWidget(controls_card)
         self.setLayout(main_layout)
         self.update_thermal_bridge(200.0, 0.0)
+
+    def ambient_toggled(self, checked):
+        self.ambient_temp_spinbox.setEnabled(checked)
+        self.ambient_loss_spinbox.setEnabled(checked)
 
     def set_status_pill(self, text, style_name):
         self.status_pill.setText(text)
@@ -398,10 +449,21 @@ class HeatTransfer(QWidget):
         heater1 = self.left_heater_spinbox.value()
         heater2 = self.right_heater_spinbox.value()
 
+        loss1 = 0.0
+        loss2 = 0.0
+
+        if self.ambient_checkbox.isChecked():
+            h = self.ambient_loss_spinbox.value()
+            room_temp = self.ambient_temp_spinbox.value()
+            loss1 = h * (room_temp - t1)
+            loss2 = h * (room_temp - t2)
+
+
+
         i1 = conductivity * (t2 - t1)
         i2 = conductivity * (t1 - t2)
-        dQ1 = (i1 + heater1) * step_dt
-        dQ2 = (i2 + heater2) * step_dt
+        dQ1 = (i1 + heater1+loss1) * step_dt
+        dQ2 = (i2 + heater2+loss2) * step_dt
         new_t1 = self.body1.add_heat(dQ1)
         new_t2 = self.body2.add_heat(dQ2)
         if new_t1 < 0.0:
@@ -436,10 +498,16 @@ class HeatTransfer(QWidget):
         self.body1_temp_history.append(new_t1)
         self.body2_temp_history.append(new_t2)
 
-        if heater1 == 0 and heater2 == 0 and abs(new_t1 - new_t2) < 0.05:
-            self.start_stop_button.setChecked(False)
-            self.start_stop_button_method()
-            self.set_status_pill(f"● Equilibrium ({new_t1:.1f} °C)", "status_pill_equilibrium")
+        if heater1 == 0 and heater2 == 0:
+            if self.ambient_checkbox.isChecked() and h > 0:
+                at_equilibrium = abs(new_t1 - room_temp) < 0.05 and abs(new_t2 - room_temp) < 0.05
+            else:
+                at_equilibrium = abs(new_t1 - new_t2) < 0.05
+
+            if at_equilibrium:
+                self.start_stop_button.setChecked(False)
+                self.start_stop_button_method()
+                self.set_status_pill(f"● Equilibrium ({new_t1:.1f} °C)", "status_pill_equilibrium")
             
 
 
@@ -496,6 +564,9 @@ class HeatTransfer(QWidget):
         self.right_heat_capacity_spinbox.setValue(0.40)
         self.left_heater_spinbox.setValue(0.0)
         self.right_heater_spinbox.setValue(0.0)
+        self.ambient_checkbox.setChecked(False)
+        self.ambient_temp_spinbox.setValue(25.0)
+        self.ambient_loss_spinbox.setValue(0.50)
         self.conductivity_spinbox.setValue(1.0)
         self.elapsed_time = 0.0
         self.arrow_frame = 0

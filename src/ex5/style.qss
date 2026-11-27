@@ -112,6 +112,24 @@ QDoubleSpinBox[readOnly="true"] {
     border: 1px solid #e2e8f0;
 }
 
+QDoubleSpinBox:disabled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    border: 1px solid #e2e8f0;
+}
+
+QFrame#controls_divider {
+    background-color: #e2e8f0;
+    border: none;
+}
+
+QCheckBox {
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+    spacing: 8px;
+}
+
 QDoubleSpinBox[readOnly="true"]::up-button,
 QDoubleSpinBox[readOnly="true"]::down-button {
     width: 0px;
