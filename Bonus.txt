@@ -2,4 +2,5 @@ Bonus Features Implemented:
 1.live time clock, status indicator, and live temperature inside both bodies.
 2.animated heat-flow direction arrows and a live Wattage flux readout.
 3. Added automatic simulation stop when the two bodies reach thermal equilibrium.
-4. Added a simulation speed selector (0.5x–10x) in the top bar and a Reset button that restores all defaults and clears the graph.
+4. Added a simulation speed selector (0.5x–100x) in the top bar and a Reset button that restores all defaults and clears the graph.
+5. Added material preset dropdowns per body with accurate SI specific heat capacities (Copper, Aluminum, Iron, Gold, Glass, Water) that lock heat capacity while a preset is active.

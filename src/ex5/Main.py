@@ -37,12 +37,21 @@ class HeatTransfer(QWidget):
         self.timer.timeout.connect(self.timer_method)
         self.dt = 0.05
 
+        self.materials = {
+            "Copper": 385.0,
+            "Aluminum": 897.0,
+            "Iron": 449.0,
+            "Gold": 129.0,
+            "Glass": 840.0,
+            "Water": 4184.0,
+        }
+
         self.setupUI()
 
     def setupUI(self):
         self.setObjectName("HeatTransferWindow")
         self.setWindowTitle("Heat Transfer")
-        self.setGeometry(120, 120, 720, 505)
+        self.setGeometry(120, 120, 720, 540)
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 16, 20, 20)
@@ -60,9 +69,9 @@ class HeatTransfer(QWidget):
 
         self.speed_combo = QComboBox()
         self.speed_combo.setObjectName("speed_combo")
-        self.speed_combo.addItems(["0.5x", "1x", "2x", "5x", "10x"])
+        self.speed_combo.addItems(["0.5x", "1x", "2x", "5x", "10x", "50x", "100x"])
         self.speed_combo.setCurrentText("1x")
-        self.speed_combo.setFixedWidth(68)
+        self.speed_combo.setFixedWidth(76)
         self.speed_combo.setCursor(Qt.CursorShape.PointingHandCursor)
         self.speed_combo.currentTextChanged.connect(self.speed_changed)
 
@@ -187,6 +196,12 @@ class HeatTransfer(QWidget):
         self.left_mass_spinbox.setSuffix(" kg")
         self.left_mass_spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.PlusMinus)
 
+        self.left_material_combo = QComboBox()
+        self.left_material_combo.setObjectName("material_combo")
+        self.left_material_combo.addItems(["Custom", "Copper", "Aluminum", "Iron", "Gold", "Glass", "Water"])
+        self.left_material_combo.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.left_material_combo.currentTextChanged.connect(self.left_material_changed)
+
         self.left_heat_capacity_spinbox = QDoubleSpinBox()
         self.left_heat_capacity_spinbox.setRange(0.01, 10000.0)
         self.left_heat_capacity_spinbox.setDecimals(2)
@@ -199,8 +214,10 @@ class HeatTransfer(QWidget):
         left_grid.addWidget(self.left_temp_display, 1, 1)
         left_grid.addWidget(QLabel("Mass"), 2, 0)
         left_grid.addWidget(self.left_mass_spinbox, 2, 1)
-        left_grid.addWidget(QLabel("H. Cap."), 3, 0)
-        left_grid.addWidget(self.left_heat_capacity_spinbox, 3, 1)
+        left_grid.addWidget(QLabel("Material"), 3, 0)
+        left_grid.addWidget(self.left_material_combo, 3, 1)
+        left_grid.addWidget(QLabel("H. Cap."), 4, 0)
+        left_grid.addWidget(self.left_heat_capacity_spinbox, 4, 1)
 
         # Center action buttons
         center_buttons_layout = QVBoxLayout()
@@ -262,6 +279,12 @@ class HeatTransfer(QWidget):
         self.right_mass_spinbox.setSuffix(" kg")
         self.right_mass_spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.PlusMinus)
 
+        self.right_material_combo = QComboBox()
+        self.right_material_combo.setObjectName("material_combo")
+        self.right_material_combo.addItems(["Custom", "Copper", "Aluminum", "Iron", "Gold", "Glass", "Water"])
+        self.right_material_combo.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.right_material_combo.currentTextChanged.connect(self.right_material_changed)
+
         self.right_heat_capacity_spinbox = QDoubleSpinBox()
         self.right_heat_capacity_spinbox.setRange(0.01, 10000.0)
         self.right_heat_capacity_spinbox.setDecimals(2)
@@ -274,8 +297,10 @@ class HeatTransfer(QWidget):
         right_grid.addWidget(QLabel("Temp."), 1, 1)
         right_grid.addWidget(self.right_mass_spinbox, 2, 0)
         right_grid.addWidget(QLabel("Mass"), 2, 1)
-        right_grid.addWidget(self.right_heat_capacity_spinbox, 3, 0)
-        right_grid.addWidget(QLabel("H. Cap."), 3, 1)
+        right_grid.addWidget(self.right_material_combo, 3, 0)
+        right_grid.addWidget(QLabel("Material"), 3, 1)
+        right_grid.addWidget(self.right_heat_capacity_spinbox, 4, 0)
+        right_grid.addWidget(QLabel("H. Cap."), 4, 1)
 
         controls_layout.addLayout(left_grid, 1)
         controls_layout.addLayout(center_buttons_layout)
@@ -292,6 +317,11 @@ class HeatTransfer(QWidget):
         self.status_pill.setObjectName(style_name)
         self.status_pill.style().unpolish(self.status_pill)
         self.status_pill.style().polish(self.status_pill)
+
+    def set_spinbox_readonly(self, spinbox, readonly):
+        spinbox.setReadOnly(readonly)
+        spinbox.style().unpolish(spinbox)
+        spinbox.style().polish(spinbox)
 
     def update_body_visual(self, body_label, name, temp):
         red = max(0, min(255, int((temp / 200) * 255)))
@@ -429,6 +459,8 @@ class HeatTransfer(QWidget):
         self.speed_combo.setCurrentText("1x")
         self.left_mass_spinbox.setValue(10.00)
         self.right_mass_spinbox.setValue(10.00)
+        self.left_material_combo.setCurrentText("Custom")
+        self.right_material_combo.setCurrentText("Custom")
         self.left_heat_capacity_spinbox.setValue(0.40)
         self.right_heat_capacity_spinbox.setValue(0.40)
         self.conductivity_spinbox.setValue(1.0)
@@ -442,6 +474,22 @@ class HeatTransfer(QWidget):
         self.set_status_pill("● Idle", "status_pill_idle")
         self.update_thermal_bridge(200.0, 0.0)
             
+
+    def left_material_changed(self):
+        material = self.left_material_combo.currentText()
+        if material == "Custom":
+            self.set_spinbox_readonly(self.left_heat_capacity_spinbox, False)
+        else:
+            self.left_heat_capacity_spinbox.setValue(self.materials[material])
+            self.set_spinbox_readonly(self.left_heat_capacity_spinbox, True)
+
+    def right_material_changed(self):
+        material = self.right_material_combo.currentText()
+        if material == "Custom":
+            self.set_spinbox_readonly(self.right_heat_capacity_spinbox, False)
+        else:
+            self.right_heat_capacity_spinbox.setValue(self.materials[material])
+            self.set_spinbox_readonly(self.right_heat_capacity_spinbox, True)
 
     def open_about_window(self):
         self.about_window.show()

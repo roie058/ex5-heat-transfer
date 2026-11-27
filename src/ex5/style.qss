@@ -199,6 +199,15 @@ QComboBox#speed_combo {
     font-weight: 700;
 }
 
+QComboBox#material_combo {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
 QSlider::groove:vertical {
     background: #e2e8f0;
     width: 6px;
